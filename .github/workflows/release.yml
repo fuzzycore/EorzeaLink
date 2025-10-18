@@ -43,13 +43,21 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      - name: Build Release (point to downloaded libs)
+      # - name: Build Release (point to downloaded libs)
+      #   run: >
+      #     dotnet build EorzeaLink/EorzeaLink.csproj
+      #     -c Release
+      #     -p:ContinuousIntegrationBuild=true
+      #     -p:DalamudLibPath="${{ github.workspace }}\dl\dalamud\"
+      #     -p:OutDir="${{ github.workspace }}\out\"
+
+      - name: Publish (fixed OutDir)
         run: >
-          dotnet build EorzeaLink/EorzeaLink.csproj
+          dotnet publish EorzeaLink/EorzeaLink.csproj
           -c Release
           -p:ContinuousIntegrationBuild=true
           -p:DalamudLibPath="${{ github.workspace }}\dl\dalamud\"
-          -p:OutDir="${{ github.workspace }}\out\"
+          -o "${{ github.workspace }}\out\"
 
       - name: Stage files
         shell: pwsh
@@ -58,21 +66,23 @@ jobs:
           $out = "${{ github.workspace }}\out"
 
           if (-not (Test-Path "$out\EorzeaLink.dll")) {
-            Write-Host "OutDir listing:"; Get-ChildItem -Recurse $out | % FullName
-            throw "EorzeaLink.dll not found in $out"
+            Write-Host "DEBUG: contents of $out"
+            Get-ChildItem -Recurse $out | % FullName
+            throw "EorzeaLink.dll not found in $out (publish must have failed)"
           }
 
           Copy-Item "$out\EorzeaLink.dll" dist\
           Copy-Item "EorzeaLink\EorzeaLink.json" dist\
 
-          # Glamourer.Api (if you build it)
-          $ga = Get-ChildItem -Recurse "${{ github.workspace }}\out" -Filter Glamourer.Api.dll | Select-Object -First 1
+          # If Glamourer.Api is referenced as a ProjectReference it should already be in 'out'.
+          # If not, copy it explicitly if present anywhere under 'out' or its own bin.
+          $ga = Get-ChildItem -Recurse $out -Filter Glamourer.Api.dll | Select-Object -First 1
+          if (-not $ga) { $ga = Get-ChildItem -Recurse "Glamourer.Api\bin" -Filter Glamourer.Api.dll | Select-Object -First 1 }
           if ($ga) { Copy-Item $ga.FullName dist\ }
 
-          # Optional icon
           if (Test-Path "EorzeaLink\icon.png") { Copy-Item "EorzeaLink\icon.png" dist\ }
 
-          # Any extra runtime deps you actually use (exclude Dalamud/Lumina)
+          # Any extra runtime deps you actually need (skip Dalamud/Lumina)
           Get-ChildItem $out -Filter *.dll |
             Where-Object { $_.Name -notin @('EorzeaLink.dll','Glamourer.Api.dll') -and $_.Name -notmatch '^Dalamud|^Lumina' } |
             Copy-Item -Destination dist\
