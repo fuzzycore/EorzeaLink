@@ -1,9 +1,8 @@
-name: Release (Plogon)
+name: Release EorzeaLink
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -11,86 +10,70 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: true
-          lfs: true
 
-      - name: Setup .NET (Plogon uses .NET 8)
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: '9.0.x'
 
-      - name: Prepare Plogon workspace
-        shell: bash
+      # Download the Dalamud dev refs to a temp folder
+      - name: Download Dalamud dev libs
+        shell: pwsh
         run: |
-          set -e
-          # Plogon expects all three channels in BOTH trees
-          mkdir -p manifests/stable/EorzeaLink
-          mkdir -p manifests/testing
-          mkdir -p manifests/staging
+          $ProgressPreference = 'SilentlyContinue'
+          New-Item -ItemType Directory -Force dl | Out-Null
+          $zip = "$(Resolve-Path dl)\dalamud.zip"
+          # Use your own mirror if you have one; this public one is commonly used.
+          $url = "${{ secrets.DALAMUD_ZIP_URL }}"
+          if ([string]::IsNullOrWhiteSpace($url)) {
+            $url = "https://goatcorp.github.io/dalamud-distrib/latest.zip"
+          }
+          Write-Host "Downloading Dalamud from $url"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath dl\dalamud -Force
+          Get-ChildItem dl\dalamud
 
-          mkdir -p manifests-master/stable/EorzeaLink
-          mkdir -p manifests-master/testing
-          mkdir -p manifests-master/staging
+      - name: Restore
+        run: dotnet restore
 
-          # Required trees/channels
-          for tree in manifests manifests-master; do
-            mkdir -p "$tree/stable/$PLUGIN" "$tree/testing/$PLUGIN" "$tree/staging/$PLUGIN"
-          done
-          mkdir -p output work artifacts
+      - name: Build Release (point to downloaded libs)
+        run: dotnet build EorzeaLink/EorzeaLink.csproj -c Release -p:ContinuousIntegrationBuild=true -p:DalamudLibPath="${{ github.workspace }}\dl\dalamud\"
 
-          # Minimal manifest (stable) for this commit
-          cat > "manifests/stable/$PLUGIN/manifest.toml" <<EOF
-          [plugin]
-          repository = "https://github.com/FuzzyCore/EorzeaLink.git"
-          commit = "${{ github.sha }}"
-          owners = [ "FuzzyCore" ]
-          changelog = '''
-          Automated build.
-          '''
-          EOF
-
-          cp -v EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
-          cp -v EorzeaLink/icon.png manifests-master/stable/EorzeaLink/icon.png
-
-          test -s manifests/stable/EorzeaLink/icon.png
-          file manifests/stable/EorzeaLink/icon.png || true
-          ls -la manifests/stable/EorzeaLink
-
-          # keep files so empty dirs exist
-          touch manifests/testing/.keep manifests/staging/.keep
-          touch manifests-master/stable/.keep manifests-master/testing/.keep manifests-master/staging/.keep
-
-          echo "sanity:"
-          ls -la "manifests/stable/$PLUGIN"
-          ls -la "manifests-master/stable/$PLUGIN"
-      - name: Clone Plogon
-        run: git clone https://github.com/goatcorp/Plogon.git
-
-      - name: Build with Plogon
-        working-directory: Plogon/Plogon
+      - name: Stage files
+        shell: pwsh
         run: |
-          dotnet run -- \
-            --manifest-folder="../../manifests" \
-            --master-manifest-folder="../../manifests-master" \
-            --output-folder="../../output" \
-            --work-folder="../../work" \
-            --static-folder="static" \
-            --artifact-folder="../../artifacts" \
-            --mode=Development --build-all
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $out = "EorzeaLink\bin\x64\Release\EorzeaLink"
+          Copy-Item "$out\EorzeaLink.dll" dist\
+          Copy-Item "EorzeaLink\EorzeaLink.json" dist\
+          if (Test-Path "Glamourer.Api\bin\Release\Glamourer.Api.dll") { Copy-Item "Glamourer.Api\bin\Release\Glamourer.Api.dll" dist\ }
+          if (Test-Path "EorzeaLink\icon.png") { Copy-Item "EorzeaLink\icon.png" dist\ }
+          # Include extra runtime deps you *actually* need (skip Dalamud/Lumina)
+          Get-ChildItem $out -Filter *.dll |
+            Where-Object { $_.Name -notin @('EorzeaLink.dll','Glamourer.Api.dll') -and $_.Name -notmatch '^Dalamud|^Lumina' } |
+            Copy-Item -Destination dist\
 
-      # Plogon drops built zips under artifacts/<PluginName>/
-      - name: Show artifacts
-        run: find artifacts -maxdepth 2 -type f -iname "*.zip" -print
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path "dist\*" -DestinationPath "EorzeaLink.zip" -Force
 
-      - name: Upload release assets
+      - name: SHA256
+        shell: pwsh
+        run: |
+          $h = Get-FileHash -Algorithm SHA256 "EorzeaLink.zip"
+          $h.Hash | Out-File -FilePath "EorzeaLink.zip.sha256" -Encoding ascii
+
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/**/**/*.zip
+            EorzeaLink.zip
+            EorzeaLink.zip.sha256
           generate_release_notes: true
