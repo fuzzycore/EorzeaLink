@@ -7,8 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
-// using AngleSharp.Html.Dom;
-// using AngleSharp.Html.Parser;
 
 namespace EorzeaLink;
 
@@ -42,12 +40,14 @@ public static class EorzeaClient
 
         if ((int)resp1.StatusCode == 401 || (int)resp1.StatusCode == 403)
         {
+            Plugin.Chat("Proxy auth expired; re-registering…");
+
             // Only retry if this looks like "unknown_client"/lost registry.
             // Optional: check body text before retrying to avoid loops.
             // Re-register → save → retry once.
             try
             {
-                await EnsureClientCredsAsync(http, baseUrl, ct);
+                await EnsureClientCredsAsync(http, baseUrl, ct, force: true);
                 using var resp2 = await DoParseAsync();
                 if (!resp2.IsSuccessStatusCode)
                     return new ParsedResult(null, null, new());
@@ -112,9 +112,10 @@ public static class EorzeaClient
         return new ParsedResult(title, author, rows);
     }
 
-    private static async Task EnsureClientCredsAsync(HttpClient http, string baseUrl, CancellationToken ct)
+    private static async Task EnsureClientCredsAsync(HttpClient http, string baseUrl, CancellationToken ct, bool force = false)
     {
-        if (!string.IsNullOrWhiteSpace(Plugin.Cfg.ClientId) &&
+        if (!force &&
+            !string.IsNullOrWhiteSpace(Plugin.Cfg.ClientId) &&
             !string.IsNullOrWhiteSpace(Plugin.Cfg.ClientSecret))
             return;
 

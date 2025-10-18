@@ -1,0 +1,58 @@
+name: Release EorzeaLink
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build Release
+        run: dotnet build EorzeaLink/EorzeaLink.csproj -c Release -p:ContinuousIntegrationBuild=true
+
+      - name: Stage files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $out = "EorzeaLink\bin\x64\Release\EorzeaLink"
+          Copy-Item "$out\EorzeaLink.dll" dist\
+          Copy-Item "EorzeaLink\EorzeaLink.json" dist\
+          if (Test-Path "Glamourer.Api\bin\Release\Glamourer.Api.dll") { Copy-Item "Glamourer.Api\bin\Release\Glamourer.Api.dll" dist\ }
+          if (Test-Path "EorzeaLink\icon.png") { Copy-Item "EorzeaLink\icon.png" dist\ }
+
+      - name: Zip (flat root)
+        shell: pwsh
+        run: Compress-Archive -Path "dist\*" -DestinationPath "EorzeaLink.zip" -Force
+
+      - name: SHA256
+        shell: pwsh
+        run: |
+          $h = Get-FileHash -Algorithm SHA256 "EorzeaLink.zip"
+          $h.Hash | Out-File -FilePath "EorzeaLink.zip.sha256" -Encoding ascii
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            EorzeaLink.zip
+            EorzeaLink.zip.sha256
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

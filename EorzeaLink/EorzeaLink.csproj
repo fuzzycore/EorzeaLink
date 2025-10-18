@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.*" />
+    <!-- <PackageReference Include="AngleSharp" Version="1.*" /> -->
     <!-- Optional: if you want explicit zips; otherwise omit and use SDK pack -->
     <!-- <PackageReference Include="DalamudPackager" Version="13.*" PrivateAssets="all" /> -->
   </ItemGroup>
