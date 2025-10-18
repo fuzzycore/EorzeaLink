@@ -26,6 +26,7 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Prepare Plogon workspace
+        shell: bash
         run: |
           set -e
           # Plogon expects all three channels in BOTH trees
@@ -37,10 +38,14 @@ jobs:
           mkdir -p manifests-master/testing
           mkdir -p manifests-master/staging
 
+          # Required trees/channels
+          for tree in manifests manifests-master; do
+            mkdir -p "$tree/stable/$PLUGIN" "$tree/testing/$PLUGIN" "$tree/staging/$PLUGIN"
+          done
           mkdir -p output work artifacts
 
-          # minimal manifest in stable
-          cat > manifests/stable/EorzeaLink/manifest.toml <<'EOF'
+          # Minimal manifest (stable) for this commit
+          cat > "manifests/stable/$PLUGIN/manifest.toml" <<EOF
           [plugin]
           repository = "https://github.com/FuzzyCore/EorzeaLink.git"
           commit = "${{ github.sha }}"
@@ -61,6 +66,9 @@ jobs:
           touch manifests/testing/.keep manifests/staging/.keep
           touch manifests-master/stable/.keep manifests-master/testing/.keep manifests-master/staging/.keep
 
+          echo "sanity:"
+          ls -la "manifests/stable/$PLUGIN"
+          ls -la "manifests-master/stable/$PLUGIN"
       - name: Clone Plogon
         run: git clone https://github.com/goatcorp/Plogon.git
 

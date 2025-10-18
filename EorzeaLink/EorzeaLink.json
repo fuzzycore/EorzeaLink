@@ -1,6 +1,7 @@
 {
   "Author": "FuzzyCore",
   "Name": "EorzeaLink",
+  "InternalName": "EorzeaLink",
   "Punchline": "Import glams from EorzeaCollection → apply via Glamourer.",
   "Description": "Paste an EorzeaCollection URL to preview and apply item+dye sets.",
   "RepoUrl": "https://github.com/FuzzyCore/EorzeaLink",
