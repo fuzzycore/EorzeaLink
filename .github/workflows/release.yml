@@ -51,6 +51,7 @@ jobs:
           EOF
 
           cp -v EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
+          cp -v EorzeaLink/icon.png manifests-master/stable/EorzeaLink/icon.png
 
           test -s manifests/stable/EorzeaLink/icon.png
           file manifests/stable/EorzeaLink/icon.png || true
