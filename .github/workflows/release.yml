@@ -1,82 +1,69 @@
-name: Release EorzeaLink
+name: Release (Plogon)
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: true  # you have Glamourer.Api as a submodule
 
-      - name: Setup .NET
+      - name: Setup .NET (Plogon uses .NET 8)
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "8.0.x"
 
-      # Download the Dalamud dev libs (you can set DALAMUD_ZIP_URL as a secret to your mirror if you prefer)
-      - name: Download Dalamud dev libs
-        shell: pwsh
+      - name: Prepare Plogon workspace
         run: |
-          $ProgressPreference = 'SilentlyContinue'
-          New-Item -ItemType Directory -Force dl | Out-Null
-          $zip = "$(Resolve-Path dl)\dalamud.zip"
+          mkdir -p manifests/EorzeaLink
+          mkdir -p output work artifacts
+          # write manifest.toml with current commit
+          cat > manifests/EorzeaLink/manifest.toml <<'EOF'
+          [plugin]
+          repository = "https://github.com/FuzzyCore/EorzeaLink.git"
+          commit = "${{ github.sha }}"
+          owners = [ "FuzzyCore" ]
+          changelog = '''
+          Automated build.
+          '''
+          EOF
+          # optional icon (if present in repo)
+          if [ -f Data/icon.png ]; then
+            cp Data/icon.png manifests/EorzeaLink/icon.png
+          fi
 
-          # Prefer your own mirror if provided, otherwise try public distrib
-          $url = "${{ secrets.DALAMUD_ZIP_URL }}"
-          if ([string]::IsNullOrWhiteSpace($url)) {
-            # If you mirror elsewhere, set DALAMUD_ZIP_URL to avoid breakage
-            $url = "https://goatcorp.github.io/dalamud-distrib/latest.zip"
-          }
-          Write-Host "Downloading Dalamud from $url"
-          Invoke-WebRequest -Uri $url -OutFile $zip
+      - name: Clone Plogon
+        run: git clone https://github.com/goatcorp/Plogon.git
 
-          Expand-Archive -Path $zip -DestinationPath dl\dalamud -Force
-          # The zip should unpack a bunch of DLLs directly into dl/dalamud/
-          Get-ChildItem dl\dalamud
-
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build Release (point to downloaded libs)
-        run: dotnet build EorzeaLink/EorzeaLink.csproj -c Release -p:ContinuousIntegrationBuild=true -p:DalamudLibPath="${{ github.workspace }}\dl\dalamud\"
-
-      - name: Stage files
-        shell: pwsh
+      - name: Build with Plogon
+        working-directory: Plogon/Plogon
         run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
-          $out = "EorzeaLink\bin\x64\Release\EorzeaLink"
-          Copy-Item "$out\EorzeaLink.dll" dist\
-          Copy-Item "EorzeaLink\EorzeaLink.json" dist\
-          if (Test-Path "Glamourer.Api\bin\Release\Glamourer.Api.dll") { Copy-Item "Glamourer.Api\bin\Release\Glamourer.Api.dll" dist\ }
-          if (Test-Path "Data\icon.png") { Copy-Item "Data\icon.png" dist\ }
-          # bring along any extra third-party deps you actually reference at runtime (skip Dalamud/Lumina)
-          Get-ChildItem $out -Filter *.dll |
-            Where-Object { $_.Name -notin @('EorzeaLink.dll','Glamourer.Api.dll') -and $_.Name -notmatch '^Dalamud|^Lumina' } |
-            Copy-Item -Destination dist\
+          dotnet run -- \
+            --manifest-folder="../../manifests" \
+            --output-folder="../../output" \
+            --work-folder="../../work" \
+            --static-folder="static" \
+            --artifact-folder="../../artifacts" \
+            --mode=Development --build-all
 
-      - name: Zip (flat root)
-        shell: pwsh
-        run: Compress-Archive -Path "dist\*" -DestinationPath "EorzeaLink.zip" -Force
+      # Plogon drops built zips under artifacts/<PluginName>/
+      - name: Show artifacts
+        run: find artifacts -maxdepth 2 -type f -iname "*.zip" -print
 
-      - name: SHA256
-        shell: pwsh
-        run: |
-          $h = Get-FileHash -Algorithm SHA256 "EorzeaLink.zip"
-          $h.Hash | Out-File -FilePath "EorzeaLink.zip.sha256" -Encoding ascii
-
-      - name: Create GitHub Release
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            EorzeaLink.zip
-            EorzeaLink.zip.sha256
+            artifacts/**/**/*.zip
           generate_release_notes: true
