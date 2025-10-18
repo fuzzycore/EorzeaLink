@@ -17,7 +17,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: true  # you have Glamourer.Api as a submodule
+          submodules: true
+          lfs: true
 
       - name: Setup .NET (Plogon uses .NET 8)
         uses: actions/setup-dotnet@v4
@@ -49,10 +50,11 @@ jobs:
           '''
           EOF
 
-          # optional icon
-          if [ -f EorzeaLink/icon.png ]; then
-            cp EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
-          fi
+          cp -v EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
+
+          test -s manifests/stable/EorzeaLink/icon.png
+          file manifests/stable/EorzeaLink/icon.png || true
+          ls -la manifests/stable/EorzeaLin
 
           # keep files so empty dirs exist
           touch manifests/testing/.keep manifests/staging/.keep
