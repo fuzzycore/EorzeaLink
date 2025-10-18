@@ -54,7 +54,7 @@ jobs:
 
           test -s manifests/stable/EorzeaLink/icon.png
           file manifests/stable/EorzeaLink/icon.png || true
-          ls -la manifests/stable/EorzeaLin
+          ls -la manifests/stable/EorzeaLink
 
           # keep files so empty dirs exist
           touch manifests/testing/.keep manifests/staging/.keep
