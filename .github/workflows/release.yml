@@ -33,7 +33,7 @@ jobs:
           mkdir -p manifests/testing
           mkdir -p manifests/staging
 
-          mkdir -p manifests-master/stable
+          mkdir -p manifests-master/stable/EorzeaLink
           mkdir -p manifests-master/testing
           mkdir -p manifests-master/staging
 
