@@ -27,10 +27,15 @@ jobs:
       - name: Prepare Plogon workspace
         run: |
           set -e
-          # Plogon expects all three channels to exist
+          # Plogon expects all three channels in BOTH trees
           mkdir -p manifests/stable/EorzeaLink
           mkdir -p manifests/testing
           mkdir -p manifests/staging
+
+          mkdir -p manifests-master/stable
+          mkdir -p manifests-master/testing
+          mkdir -p manifests-master/staging
+
           mkdir -p output work artifacts
 
           # minimal manifest in stable
@@ -49,8 +54,9 @@ jobs:
             cp EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
           fi
 
-          # keep files so empty dirs persist in artifacts/logs if needed
+          # keep files so empty dirs exist
           touch manifests/testing/.keep manifests/staging/.keep
+          touch manifests-master/stable/.keep manifests-master/testing/.keep manifests-master/staging/.keep
 
       - name: Clone Plogon
         run: git clone https://github.com/goatcorp/Plogon.git
@@ -60,6 +66,7 @@ jobs:
         run: |
           dotnet run -- \
             --manifest-folder="../../manifests" \
+            --master-manifest-folder="../../manifests-master" \
             --output-folder="../../output" \
             --work-folder="../../work" \
             --static-folder="static" \
