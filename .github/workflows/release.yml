@@ -26,10 +26,12 @@ jobs:
 
       - name: Prepare Plogon workspace
         run: |
-          mkdir -p manifests/EorzeaLink
+          set -e
+          mkdir -p manifests/stable/EorzeaLink
           mkdir -p output work artifacts
+
           # write manifest.toml with current commit
-          cat > manifests/EorzeaLink/manifest.toml <<'EOF'
+          cat > manifests/stable/EorzeaLink/manifest.toml <<'EOF'
           [plugin]
           repository = "https://github.com/FuzzyCore/EorzeaLink.git"
           commit = "${{ github.sha }}"
@@ -38,9 +40,10 @@ jobs:
           Automated build.
           '''
           EOF
+
           # optional icon (if present in repo)
-          if [ -f Data/icon.png ]; then
-            cp Data/icon.png manifests/EorzeaLink/icon.png
+          if [ -f EorzeaLink/icon.png ]; then
+            cp EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
           fi
 
       - name: Clone Plogon
