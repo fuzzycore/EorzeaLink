@@ -44,18 +44,35 @@ jobs:
         run: dotnet restore
 
       - name: Build Release (point to downloaded libs)
-        run: dotnet build EorzeaLink/EorzeaLink.csproj -c Release -p:ContinuousIntegrationBuild=true -p:DalamudLibPath="${{ github.workspace }}\dl\dalamud\"
+        run: >
+          dotnet build EorzeaLink/EorzeaLink.csproj
+          -c Release
+          -p:ContinuousIntegrationBuild=true
+          -p:DalamudLibPath="${{ github.workspace }}\dl\dalamud\"
+          -p:OutDir="${{ github.workspace }}\out\"
 
       - name: Stage files
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          $out = "EorzeaLink\bin\x64\Release\EorzeaLink"
+          $out = "${{ github.workspace }}\out"
+
+          if (-not (Test-Path "$out\EorzeaLink.dll")) {
+            Write-Host "OutDir listing:"; Get-ChildItem -Recurse $out | % FullName
+            throw "EorzeaLink.dll not found in $out"
+          }
+
           Copy-Item "$out\EorzeaLink.dll" dist\
           Copy-Item "EorzeaLink\EorzeaLink.json" dist\
-          if (Test-Path "Glamourer.Api\bin\Release\Glamourer.Api.dll") { Copy-Item "Glamourer.Api\bin\Release\Glamourer.Api.dll" dist\ }
+
+          # Glamourer.Api (if you build it)
+          $ga = Get-ChildItem -Recurse "${{ github.workspace }}\out" -Filter Glamourer.Api.dll | Select-Object -First 1
+          if ($ga) { Copy-Item $ga.FullName dist\ }
+
+          # Optional icon
           if (Test-Path "EorzeaLink\icon.png") { Copy-Item "EorzeaLink\icon.png" dist\ }
-          # Include extra runtime deps you *actually* need (skip Dalamud/Lumina)
+
+          # Any extra runtime deps you actually use (exclude Dalamud/Lumina)
           Get-ChildItem $out -Filter *.dll |
             Where-Object { $_.Name -notin @('EorzeaLink.dll','Glamourer.Api.dll') -and $_.Name -notmatch '^Dalamud|^Lumina' } |
             Copy-Item -Destination dist\
