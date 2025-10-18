@@ -27,10 +27,13 @@ jobs:
       - name: Prepare Plogon workspace
         run: |
           set -e
+          # Plogon expects all three channels to exist
           mkdir -p manifests/stable/EorzeaLink
+          mkdir -p manifests/testing
+          mkdir -p manifests/staging
           mkdir -p output work artifacts
 
-          # write manifest.toml with current commit
+          # minimal manifest in stable
           cat > manifests/stable/EorzeaLink/manifest.toml <<'EOF'
           [plugin]
           repository = "https://github.com/FuzzyCore/EorzeaLink.git"
@@ -41,10 +44,13 @@ jobs:
           '''
           EOF
 
-          # optional icon (if present in repo)
+          # optional icon
           if [ -f EorzeaLink/icon.png ]; then
             cp EorzeaLink/icon.png manifests/stable/EorzeaLink/icon.png
           fi
+
+          # keep files so empty dirs persist in artifacts/logs if needed
+          touch manifests/testing/.keep manifests/staging/.keep
 
       - name: Clone Plogon
         run: git clone https://github.com/goatcorp/Plogon.git
