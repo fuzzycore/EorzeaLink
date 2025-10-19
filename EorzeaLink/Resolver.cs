@@ -119,8 +119,8 @@ public static class Resolver
             if (F(cat.Neck)) return "Neck";
             if (F(cat.Wrists)) return "Wrists";
             if (F(cat.FingerL) || F(cat.FingerR)) return "Ring";
-            if (F(cat.Waist)) return "Waist";
-            if (F(cat.SoulCrystal)) return "SoulCrystal";
+            // if (F(cat.Waist)) return "Waist";
+            // if (F(cat.SoulCrystal)) return "SoulCrystal";
         }
         catch
         {
@@ -135,4 +135,4 @@ public static class Resolver
         => a.Equals(b, StringComparison.OrdinalIgnoreCase);
 }
 
-public record ResolvedRow(string Slot, string ItemName, int ItemId, uint? Stain1Id, uint? Stain2Id = null);
+// public record ResolvedRow(string Slot, string ItemName, int ItemId, uint? Stain1Id, uint? Stain2Id = null);

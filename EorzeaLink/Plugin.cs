@@ -25,6 +25,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    internal static AllaganToolsBridge? AtBridge;
 
     private readonly WindowSystem _ws = new("EorzeaLink");
     private readonly MainWindow _win;
@@ -47,12 +48,12 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Cfg = Pi.GetPluginConfig() as PluginConfig ?? new PluginConfig();
-
         Save();
 
-        _win = new MainWindow(url => ElinkPreviewAsync(url));
+        try { AtBridge = new AllaganToolsBridge(Pi); }
+        catch { AtBridge = null; }
 
-        // UI wiring AFTER _win exists
+        _win = new MainWindow(url => ElinkPreviewAsync(url));
         _ws.AddWindow(_win);
         Pi.UiBuilder.Draw += DrawUI;
         Pi.UiBuilder.OpenMainUi += OpenWin;
@@ -109,6 +110,7 @@ public sealed class Plugin : IDalamudPlugin
             }
 
             var resolved = Resolver.ResolveAll(Data, parsed.Rows);
+            Ownership.Annotate(resolved);
             _lastResolved = resolved;
 
             _win.SetPreview(resolved, url, parsed.Title, parsed.Author);

@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
+using static EorzeaLink.Ownership;
+using System.Numerics;
 
 namespace EorzeaLink;
 
@@ -91,15 +93,25 @@ public sealed class MainWindow : Window
             return; // Don't render below just yet
         }
 
-        if (!string.IsNullOrEmpty(_sourceUrl))
-            if (!string.IsNullOrWhiteSpace(_title))
-                ImGui.TextUnformatted(_title);
+        // if (!string.IsNullOrEmpty(_sourceUrl))
+        if (!string.IsNullOrWhiteSpace(_title))
+            ImGui.TextUnformatted(_title);
 
-            if (!string.IsNullOrWhiteSpace(_author))
-                ImGui.TextUnformatted($"by {_author}");
+        if (!string.IsNullOrWhiteSpace(_author))
+            ImGui.TextUnformatted($"by {_author}");
 
-        if (ImGui.BeginTable("preview", 5, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit))
+        if (Plugin.AtBridge?.Ready != true)
         {
+            ImGui.TextWrapped(
+                "Note: Allagan Tools plugin not detected. Ownership info may be incomplete. " +
+                "For best results, install Allagan Tools from Dalamud's plugin repository."
+            );
+        }
+
+        if (ImGui.BeginTable("preview", 6,
+            ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit))
+        {
+            ImGui.TableSetupColumn("Own");
             ImGui.TableSetupColumn("Slot");
             ImGui.TableSetupColumn("Item Name");
             ImGui.TableSetupColumn("ItemId");
@@ -110,12 +122,36 @@ public sealed class MainWindow : Window
             foreach (var r in _rows)
             {
                 ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0); ImGui.TextUnformatted(r.Slot);
-                ImGui.TableSetColumnIndex(1); ImGui.TextUnformatted(r.ItemName);
-                ImGui.TableSetColumnIndex(2); ImGui.TextUnformatted(r.ItemId.ToString());
-                ImGui.TableSetColumnIndex(3); ImGui.TextUnformatted(r.Stain1Id?.ToString() ?? "-");
-                ImGui.TableSetColumnIndex(4); ImGui.TextUnformatted(r.Stain2Id?.ToString() ?? "-");
+
+                // Own (colored glyph + tooltip)
+                ImGui.TableSetColumnIndex(0);
+                ImGui.PushStyleColor(ImGuiCol.Text, OwnColor(r.Own));
+                ImGui.TextUnformatted(OwnGlyph(r.Own));
+                ImGui.PopStyleColor();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip($"Ownership: {r.Own} (via {r.OwnSource})");
+
+                // Slot
+                ImGui.TableSetColumnIndex(1);
+                ImGui.TextUnformatted(r.Slot);
+
+                // Item
+                ImGui.TableSetColumnIndex(2);
+                ImGui.TextUnformatted(r.ItemName);
+
+                // ItemId
+                ImGui.TableSetColumnIndex(3);
+                ImGui.TextUnformatted(r.ItemId.ToString());
+
+                // Dye1
+                ImGui.TableSetColumnIndex(4);
+                ImGui.TextUnformatted(r.Stain1Id?.ToString() ?? "-");
+
+                // Dye2
+                ImGui.TableSetColumnIndex(5);
+                ImGui.TextUnformatted(r.Stain2Id?.ToString() ?? "-");
             }
+
             ImGui.EndTable();
         }
 
@@ -134,4 +170,18 @@ public sealed class MainWindow : Window
             ImGui.TextDisabled("No items parsed yet.");
         }
     }
+
+    private static Vector4 OwnColor(OwnStatus s) => s switch
+    {
+        OwnStatus.Have     => new(0.55f, 0.95f, 0.55f, 1f),  // green
+        OwnStatus.Unknown  => new(0.95f, 0.85f, 0.45f, 1f),  // yellow
+        _ /* NotHave */    => new(0.85f, 0.40f, 0.40f, 1f),  // red
+    };
+
+    private static string OwnGlyph(OwnStatus s) => s switch
+    {
+        OwnStatus.Have    => "✓",
+        OwnStatus.Unknown => "?",
+        _                 => "×",
+    };
 }
