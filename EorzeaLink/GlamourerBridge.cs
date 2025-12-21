@@ -39,7 +39,8 @@ public static class GlamourerBridge
 
     private static int GetLocalObjectIndex()
     {
-        var lp = Plugin.ClientState.LocalPlayer;
+        // Dalamud API 14+: IClientState.LocalPlayer is obsolete; prefer IObjectTable.LocalPlayer.
+        var lp = Plugin.ObjectTable.LocalPlayer;
         if (lp is null) return -1;
         for (int i = 0; i < Plugin.ObjectTable.Length; i++)
         {

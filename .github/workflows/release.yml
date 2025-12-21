@@ -21,7 +21,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          # Use the repo-pinned SDK version (required for Dalamud API 14 / patch 7.4 builds).
+          global-json-file: 'global.json'
 
       # Download the Dalamud dev refs to a temp folder
       - name: Download Dalamud dev libs
