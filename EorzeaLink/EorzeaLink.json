@@ -5,7 +5,7 @@
   "Punchline": "Import glams from EorzeaCollection → apply via Glamourer.",
   "Description": "Paste an EorzeaCollection URL to preview and apply item+dye sets.",
   "RepoUrl": "https://github.com/FuzzyCore/EorzeaLink",
-  "DalamudApiLevel": 14,
+  "DalamudApiLevel": 15,
   "Tags": [ "glamour", "cosmetic", "eorzeacollection", "fashion" ],
   "AcceptsFeedback": true,
   "IconUrl": "https://raw.githubusercontent.com/fuzzycore/EorzeaLink/refs/heads/master/EorzeaLink/icon.png"

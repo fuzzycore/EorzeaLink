@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/14.0.1">
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
     <TargetFramework>net10.0-windows7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <DalamudApiLevel>14</DalamudApiLevel>
-    <Version>0.1.0</Version>
+    <DalamudApiLevel>15</DalamudApiLevel>
+    <Version>0.1.5</Version>
     <Description>Import EorzeaCollection glams and apply via Glamourer.</Description>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -17,7 +17,7 @@
   <ItemGroup>
     <!-- <PackageReference Include="AngleSharp" Version="1.*" /> -->
     <!-- Optional: if you want explicit zips; otherwise omit and use SDK pack -->
-    <!-- <PackageReference Include="DalamudPackager" Version="14.*" PrivateAssets="all" /> -->
+    <!-- <PackageReference Include="DalamudPackager" Version="15.*" PrivateAssets="all" /> -->
   </ItemGroup>
 
 <ItemGroup>
