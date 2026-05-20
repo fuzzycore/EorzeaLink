@@ -21,7 +21,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          # Use the repo-pinned SDK version (required for Dalamud API 14 / patch 7.4 builds).
+          # Use the repo-pinned SDK version (required for Dalamud API 15 / patch 7.5 builds).
           global-json-file: 'global.json'
 
       # Download the Dalamud dev refs to a temp folder
@@ -73,7 +73,15 @@ jobs:
           }
 
           Copy-Item "$out\EorzeaLink.dll" dist\
-          Copy-Item "EorzeaLink\EorzeaLink.json" dist\
+
+          # Use the Dalamud-packed manifest (includes AssemblyVersion). Do not copy the source json.
+          $manifest = @(
+            Get-ChildItem -Path $out -Recurse -Filter EorzeaLink.json -ErrorAction SilentlyContinue
+            Get-ChildItem -Path "EorzeaLink\bin" -Recurse -Filter EorzeaLink.json -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '\\Release\\' }
+          ) | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $manifest) { throw "Packed EorzeaLink.json not found (build/publish must run Dalamud packager)" }
+          Copy-Item $manifest.FullName dist\
 
           # If Glamourer.Api is referenced as a ProjectReference it should already be in 'out'.
           # If not, copy it explicitly if present anywhere under 'out' or its own bin.
