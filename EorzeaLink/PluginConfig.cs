@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
@@ -9,4 +10,5 @@ public sealed class PluginConfig : IPluginConfiguration
     public string? WorkerUrl { get; set; } = "https://eorzealink-proxy-production.up.railway.app";
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }
+    public List<GlamHistoryEntry> GlamHistory { get; set; } = new();
 }

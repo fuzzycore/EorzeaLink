@@ -53,7 +53,9 @@ public sealed class Plugin : IDalamudPlugin
         try { AtBridge = new AllaganToolsBridge(Pi); }
         catch { AtBridge = null; }
 
-        _win = new MainWindow(url => ElinkPreviewAsync(url));
+        _win = new MainWindow(
+            url => ElinkPreviewAsync(url),
+            RestoreFromHistory);
         _ws.AddWindow(_win);
         Pi.UiBuilder.Draw += DrawUI;
         Pi.UiBuilder.OpenMainUi += OpenWin;
@@ -96,6 +98,15 @@ public sealed class Plugin : IDalamudPlugin
         _ = Task.Run(() => ElinkPreviewAsync(arg));
     }
 
+    private void RestoreFromHistory(GlamHistoryEntry entry)
+    {
+        var rows = entry.ToResolvedRows();
+        Ownership.Annotate(rows);
+        _lastResolved = rows;
+        _win.SetPreview(rows, entry.Url, entry.Title, entry.Author);
+        _win.IsOpen = true;
+    }
+
     private async Task ElinkPreviewAsync(string url, CancellationToken ct = default)
     {
         try
@@ -112,6 +123,7 @@ public sealed class Plugin : IDalamudPlugin
             var resolved = Resolver.ResolveAll(Data, parsed.Rows);
             Ownership.Annotate(resolved);
             _lastResolved = resolved;
+            GlamHistory.Record(url, parsed.Title, parsed.Author, resolved);
 
             _win.SetPreview(resolved, url, parsed.Title, parsed.Author);
             _win.IsOpen = true;

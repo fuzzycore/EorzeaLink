@@ -11,6 +11,7 @@ namespace EorzeaLink;
 public sealed class MainWindow : Window
 {
     private readonly Func<string, Task> _onPreview;
+    private readonly Action<GlamHistoryEntry> _onRestoreHistory;
     private List<ResolvedRow> _rows = new();
     // public IReadOnlyList<ResolvedRow> Rows => _rows;
     private string _sourceUrl = "";
@@ -19,11 +20,19 @@ public sealed class MainWindow : Window
     private bool _loading = false;
     private string _status = string.Empty;
 
-    public MainWindow() : this(_ => Task.CompletedTask) { }
+    public MainWindow() : this(_ => Task.CompletedTask, _ => { }) { }
 
-    public MainWindow(Func<string, Task> onPreview) : base("EorzeaLink", ImGuiWindowFlags.AlwaysAutoResize)
+    public MainWindow(Func<string, Task> onPreview, Action<GlamHistoryEntry> onRestoreHistory)
+        : base("EorzeaLink")
     {
         _onPreview = onPreview ?? (_ => Task.CompletedTask);
+        _onRestoreHistory = onRestoreHistory ?? (_ => { });
+        Size = new Vector2(880, 520);
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(640, 360),
+            MaximumSize = new Vector2(2000, 2000),
+        };
     }
 
     public void BeginLoading(string url, string status = "Fetching glamour. Please wait.")
@@ -60,8 +69,27 @@ public sealed class MainWindow : Window
 
     public override void Draw()
     {
+        var avail = ImGui.GetContentRegionAvail();
+        var history = GlamHistory.Entries;
+        const float sidebarWidth = 220f;
+
+        if (history.Count > 0)
+        {
+            ImGui.BeginChild("##history-sidebar", new Vector2(sidebarWidth, avail.Y), true);
+            DrawHistorySidebar(history);
+            ImGui.EndChild();
+            ImGui.SameLine();
+        }
+
+        ImGui.BeginChild("##main-content", ImGui.GetContentRegionAvail(), false);
+        DrawMainPanel();
+        ImGui.EndChild();
+    }
+
+    private void DrawMainPanel()
+    {
         ImGui.TextUnformatted("EorzeaCollection URL");
-        ImGui.PushItemWidth(520);
+        ImGui.PushItemWidth(-100);
         bool submitted = ImGui.InputTextWithHint(
             "##elink-url",
             "https://ffxiv.eorzeacollection.com/glamour/...",
@@ -90,10 +118,15 @@ public sealed class MainWindow : Window
         if (_loading)
         {
             ImGui.TextDisabled(string.IsNullOrEmpty(_status) ? "Please wait…" : _status);
-            return; // Don't render below just yet
+            return;
         }
 
-        // if (!string.IsNullOrEmpty(_sourceUrl))
+        if (!string.IsNullOrWhiteSpace(_status))
+        {
+            ImGui.TextWrapped(_status);
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(_title))
             ImGui.TextUnformatted(_title);
 
@@ -108,22 +141,38 @@ public sealed class MainWindow : Window
             );
         }
 
+        var footerHeight = ImGui.GetFrameHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y + 1f;
+        ImGui.BeginChild("##preview-scroll", new Vector2(0, -footerHeight), false);
+        DrawPreviewTable();
+        ImGui.EndChild();
+
+        ImGui.Separator();
+        DrawApplyFooter();
+    }
+
+    private void DrawPreviewTable()
+    {
+        var tableSize = ImGui.GetContentRegionAvail();
+        if (tableSize.Y < 1f)
+            return;
+
         if (ImGui.BeginTable("preview", 6,
-            ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit))
+            ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY,
+            tableSize))
         {
-            ImGui.TableSetupColumn("Own");
-            ImGui.TableSetupColumn("Slot");
+            ImGui.TableSetupColumn("Own", ImGuiTableColumnFlags.WidthFixed, 28);
+            ImGui.TableSetupColumn("Slot", ImGuiTableColumnFlags.WidthFixed, 72);
             ImGui.TableSetupColumn("Item Name");
-            ImGui.TableSetupColumn("ItemId");
-            ImGui.TableSetupColumn("Dye1Id");
-            ImGui.TableSetupColumn("Dye2Id");
+            ImGui.TableSetupColumn("ItemId", ImGuiTableColumnFlags.WidthFixed, 56);
+            ImGui.TableSetupColumn("Dye1Id", ImGuiTableColumnFlags.WidthFixed, 48);
+            ImGui.TableSetupColumn("Dye2Id", ImGuiTableColumnFlags.WidthFixed, 48);
+            ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableHeadersRow();
 
             foreach (var r in _rows)
             {
                 ImGui.TableNextRow();
 
-                // Own (colored glyph + tooltip)
                 ImGui.TableSetColumnIndex(0);
                 ImGui.PushStyleColor(ImGuiCol.Text, OwnColor(r.Own));
                 ImGui.TextUnformatted(OwnGlyph(r.Own));
@@ -131,32 +180,28 @@ public sealed class MainWindow : Window
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip($"Ownership: {r.Own} (via {r.OwnSource})");
 
-                // Slot
                 ImGui.TableSetColumnIndex(1);
                 ImGui.TextUnformatted(r.Slot);
 
-                // Item
                 ImGui.TableSetColumnIndex(2);
                 ImGui.TextUnformatted(r.ItemName);
 
-                // ItemId
                 ImGui.TableSetColumnIndex(3);
                 ImGui.TextUnformatted(r.ItemId.ToString());
 
-                // Dye1
                 ImGui.TableSetColumnIndex(4);
                 ImGui.TextUnformatted(r.Stain1Id?.ToString() ?? "-");
 
-                // Dye2
                 ImGui.TableSetColumnIndex(5);
                 ImGui.TextUnformatted(r.Stain2Id?.ToString() ?? "-");
             }
 
             ImGui.EndTable();
         }
+    }
 
-        ImGui.Separator();
-
+    private void DrawApplyFooter()
+    {
         if (_rows.Count > 0)
         {
             if (ImGui.Button("Apply via Glamourer"))
@@ -169,6 +214,73 @@ public sealed class MainWindow : Window
         {
             ImGui.TextDisabled("No items parsed yet.");
         }
+    }
+
+    private void DrawHistorySidebar(IReadOnlyList<GlamHistoryEntry> history)
+    {
+        ImGui.TextUnformatted("Recent");
+        ImGui.Separator();
+
+        var wrapPos = ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X;
+        foreach (var entry in history)
+        {
+            var selected = string.Equals(_sourceUrl, entry.Url, StringComparison.OrdinalIgnoreCase);
+            ImGui.PushID(entry.Url);
+
+            var start = ImGui.GetCursorScreenPos();
+            var width = ImGui.GetContentRegionAvail().X;
+
+            ImGui.PushTextWrapPos(wrapPos);
+            ImGui.TextUnformatted(FormatHistoryTitle(entry));
+            ImGui.TextDisabled(FormatHistorySubtitle(entry));
+            ImGui.PopTextWrapPos();
+
+            var end = ImGui.GetCursorScreenPos();
+            var height = end.Y - start.Y;
+
+            ImGui.SetCursorScreenPos(start);
+            if (ImGui.Selectable("##entry", selected, ImGuiSelectableFlags.None, new Vector2(width, height)))
+            {
+                _sourceUrl = entry.Url;
+                _onRestoreHistory(entry);
+            }
+
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip($"{entry.Url}\n{entry.Rows.Count} items");
+
+            ImGui.SetCursorScreenPos(end);
+            ImGui.PopID();
+        }
+    }
+    private static string FormatHistoryTitle(GlamHistoryEntry entry) =>
+        string.IsNullOrWhiteSpace(entry.Title)
+            ? Truncate(entry.Url, 32)
+            : Truncate(entry.Title.Trim(), 32);
+
+    private static string FormatHistorySubtitle(GlamHistoryEntry entry)
+    {
+        var parts = new List<string>(2);
+        if (!string.IsNullOrWhiteSpace(entry.Author))
+            parts.Add(entry.Author.Trim());
+        parts.Add(FormatRetrievedAt(entry.RetrievedAt));
+        return string.Join(" · ", parts);
+    }
+
+    private static string Truncate(string text, int max)
+    {
+        if (text.Length <= max)
+            return text;
+        return text[..(max - 1)] + "…";
+    }
+
+    private static string FormatRetrievedAt(DateTime utc)
+    {
+        var elapsed = DateTime.UtcNow - utc;
+        if (elapsed.TotalMinutes < 1) return "just now";
+        if (elapsed.TotalHours < 1) return $"{(int)elapsed.TotalMinutes}m ago";
+        if (elapsed.TotalDays < 1) return $"{(int)elapsed.TotalHours}h ago";
+        if (elapsed.TotalDays < 7) return $"{(int)elapsed.TotalDays}d ago";
+        return utc.ToLocalTime().ToString("g");
     }
 
     private static Vector4 OwnColor(OwnStatus s) => s switch
