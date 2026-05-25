@@ -11,6 +11,8 @@ public sealed class GlamHistoryRow
     public int ItemId { get; set; }
     public uint? Stain1Id { get; set; }
     public uint? Stain2Id { get; set; }
+    public string? Stain1Name { get; set; }
+    public string? Stain2Name { get; set; }
 
     public static GlamHistoryRow From(ResolvedRow r) => new()
     {
@@ -19,10 +21,12 @@ public sealed class GlamHistoryRow
         ItemId = r.ItemId,
         Stain1Id = r.Stain1Id,
         Stain2Id = r.Stain2Id,
+        Stain1Name = r.Stain1Name,
+        Stain2Name = r.Stain2Name,
     };
 
     public ResolvedRow ToResolvedRow() =>
-        new(Slot, ItemName, ItemId, Stain1Id, Stain2Id);
+        new(Slot, ItemName, ItemId, Stain1Id, Stain2Id, Stain1Name, Stain2Name);
 }
 
 public sealed class GlamHistoryEntry

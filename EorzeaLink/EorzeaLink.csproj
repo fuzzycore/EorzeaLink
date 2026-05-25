@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <DalamudApiLevel>15</DalamudApiLevel>
-    <Version>0.1.7</Version>
+    <Version>0.1.8</Version>
     <Description>Import EorzeaCollection glams and apply via Glamourer.</Description>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

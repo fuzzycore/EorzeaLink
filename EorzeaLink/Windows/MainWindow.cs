@@ -156,16 +156,15 @@ public sealed class MainWindow : Window
         if (tableSize.Y < 1f)
             return;
 
-        if (ImGui.BeginTable("preview", 6,
+        if (ImGui.BeginTable("preview", 5,
             ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY,
             tableSize))
         {
             ImGui.TableSetupColumn("Own", ImGuiTableColumnFlags.WidthFixed, 28);
             ImGui.TableSetupColumn("Slot", ImGuiTableColumnFlags.WidthFixed, 72);
             ImGui.TableSetupColumn("Item Name");
-            ImGui.TableSetupColumn("ItemId", ImGuiTableColumnFlags.WidthFixed, 56);
-            ImGui.TableSetupColumn("Dye1Id", ImGuiTableColumnFlags.WidthFixed, 48);
-            ImGui.TableSetupColumn("Dye2Id", ImGuiTableColumnFlags.WidthFixed, 48);
+            ImGui.TableSetupColumn("Dye 1", ImGuiTableColumnFlags.WidthFixed, 120);
+            ImGui.TableSetupColumn("Dye 2", ImGuiTableColumnFlags.WidthFixed, 120);
             ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableHeadersRow();
 
@@ -187,13 +186,10 @@ public sealed class MainWindow : Window
                 ImGui.TextUnformatted(r.ItemName);
 
                 ImGui.TableSetColumnIndex(3);
-                ImGui.TextUnformatted(r.ItemId.ToString());
+                ImGui.TextUnformatted(Resolver.FormatStainName(Plugin.Data, r.Stain1Id, r.Stain1Name));
 
                 ImGui.TableSetColumnIndex(4);
-                ImGui.TextUnformatted(r.Stain1Id?.ToString() ?? "-");
-
-                ImGui.TableSetColumnIndex(5);
-                ImGui.TextUnformatted(r.Stain2Id?.ToString() ?? "-");
+                ImGui.TextUnformatted(Resolver.FormatStainName(Plugin.Data, r.Stain2Id, r.Stain2Name));
             }
 
             ImGui.EndTable();

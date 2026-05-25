@@ -27,6 +27,9 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
+    [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider Interop { get; private set; } = null!;
     internal static AllaganToolsBridge? AtBridge;
 
     private readonly WindowSystem _ws = new("EorzeaLink");
@@ -61,7 +64,7 @@ public sealed class Plugin : IDalamudPlugin
         _win = new MainWindow(
             url => ElinkPreviewAsync(url),
             RestoreFromHistory);
-        _itemContextMenu = new ItemContextMenu(ContextMenu, Data);
+        _itemContextMenu = new ItemContextMenu(ContextMenu, Data, Framework, AddonLifecycle, Interop);
         _ws.AddWindow(_win);
         Pi.UiBuilder.Draw += DrawUI;
         Pi.UiBuilder.OpenMainUi += OpenWin;

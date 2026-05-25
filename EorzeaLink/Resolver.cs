@@ -19,12 +19,12 @@ public static class Resolver
             var (itemId, canon, itemRow) = ResolveItemId(itemSheet, row.ItemName);
             if (itemId == 0) continue;
 
-            uint? s1 = row.Dye1 is { Length: > 0 } ? ResolveStainId(stainSheet, row.Dye1) : null;
-            uint? s2 = row.Dye2 is { Length: > 0 } ? ResolveStainId(stainSheet, row.Dye2) : null;
+            var (s1, stain1Name) = ResolveStain(stainSheet, row.Dye1);
+            var (s2, stain2Name) = ResolveStain(stainSheet, row.Dye2);
 
             var slot = itemRow.HasValue ? InferSlot(data, itemRow.Value) : "Unknown";
 
-            rows.Add(new ResolvedRow(slot, canon, itemId, s1, s2));
+            rows.Add(new ResolvedRow(slot, canon, itemId, s1, s2, stain1Name, stain2Name));
         }
         return rows;
     }
@@ -64,18 +64,34 @@ public static class Resolver
         return found ? ((int)hit.RowId, hit.Name.ToString().Trim(), hit) : (0, rawName, null);
     }
 
-    private static uint? ResolveStainId(ExcelSheet<Stain> sheet, string name)
+    public static string FormatStainName(IDataManager data, uint? stainId, string? stainName)
     {
-        Stain hit = default;
-        bool found = false;
+        if (!string.IsNullOrWhiteSpace(stainName))
+            return stainName.Trim();
+
+        if (stainId is not { } id)
+            return "-";
+
+        var sheet = data.GetExcelSheet<Stain>();
+        if (sheet != null && sheet.TryGetRow(id, out var row))
+            return row.Name.ToString().Trim();
+
+        return "-";
+    }
+
+    private static (uint? id, string? name) ResolveStain(ExcelSheet<Stain> sheet, string? rawName)
+    {
+        if (rawName is not { Length: > 0 })
+            return (null, null);
 
         foreach (var s in sheet)
         {
             var n = s.Name.ToString().Trim();
-            if (StringEquals(n, name)) { hit = s; found = true; break; }
+            if (StringEquals(n, rawName))
+                return (s.RowId, n);
         }
 
-        return found ? hit.RowId : (uint?)null;
+        return (null, rawName.Trim());
     }
 
     private static string NormalizeName(string s)
