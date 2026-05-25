@@ -11,4 +11,5 @@ public sealed class PluginConfig : IPluginConfiguration
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }
     public List<GlamHistoryEntry> GlamHistory { get; set; } = new();
+    public Dictionary<int, int> EcPieceCache { get; set; } = new();
 }

@@ -29,6 +29,15 @@ public static class Resolver
         return rows;
     }
 
+    public static string GetEquipSlot(IDataManager data, uint itemId)
+    {
+        var sheet = data.GetExcelSheet<Item>();
+        if (sheet == null || !sheet.TryGetRow(itemId, out var item))
+            return "Unknown";
+
+        return InferSlot(data, item);
+    }
+
     private static (int itemId, string canonName, Item? itemRow) ResolveItemId(ExcelSheet<Item> sheet, string rawName)
     {
         var normalized = NormalizeName(rawName);

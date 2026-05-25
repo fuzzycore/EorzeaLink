@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <DalamudApiLevel>15</DalamudApiLevel>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
     <Description>Import EorzeaCollection glams and apply via Glamourer.</Description>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -57,14 +57,9 @@
 </ItemGroup>
 
   <ItemGroup>
-    <!-- Example asset (keep if you need it) -->
-    <!-- <Content Include="..\Data\goat.png">
+    <EmbeddedResource Include="Data\ec-piece-map.json" />
+    <Content Include="Data\ec-piece-map.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content> -->
-    <!-- Ensure plugin.json is included (put it in the project root) -->
-    <!-- <None Include="plugin.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None> -->
+    </Content>
   </ItemGroup>
 </Project>

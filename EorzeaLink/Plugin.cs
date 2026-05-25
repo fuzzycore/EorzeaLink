@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,10 +26,12 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
     internal static AllaganToolsBridge? AtBridge;
 
     private readonly WindowSystem _ws = new("EorzeaLink");
     private readonly MainWindow _win;
+    private readonly ItemContextMenu _itemContextMenu;
     private List<ResolvedRow> _lastResolved = new();
 
     private void DrawUI() => _ws.Draw();
@@ -42,7 +45,7 @@ public sealed class Plugin : IDalamudPlugin
         UseCookies = false
     })
     {
-        Timeout = TimeSpan.FromSeconds(30)
+        Timeout = TimeSpan.FromSeconds(90)
     };
 
     public Plugin()
@@ -50,12 +53,15 @@ public sealed class Plugin : IDalamudPlugin
         Cfg = Pi.GetPluginConfig() as PluginConfig ?? new PluginConfig();
         Save();
 
+        EcPieceMap.Initialize(Path.GetDirectoryName(Pi.AssemblyLocation.FullName));
+
         try { AtBridge = new AllaganToolsBridge(Pi); }
         catch { AtBridge = null; }
 
         _win = new MainWindow(
             url => ElinkPreviewAsync(url),
             RestoreFromHistory);
+        _itemContextMenu = new ItemContextMenu(ContextMenu, Data);
         _ws.AddWindow(_win);
         Pi.UiBuilder.Draw += DrawUI;
         Pi.UiBuilder.OpenMainUi += OpenWin;
@@ -144,6 +150,7 @@ public sealed class Plugin : IDalamudPlugin
     // dispose
     public void Dispose()
     {
+        _itemContextMenu.Dispose();
         _ws.RemoveAllWindows();
         Cmd.RemoveHandler("/elink");
         Pi.UiBuilder.Draw -= DrawUI;

@@ -74,6 +74,12 @@ jobs:
 
           Copy-Item "$out\EorzeaLink.dll" dist\
 
+          $dataMap = Get-ChildItem -Path $out -Recurse -Filter ec-piece-map.json -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($dataMap) {
+            New-Item -ItemType Directory -Force dist\Data | Out-Null
+            Copy-Item $dataMap.FullName dist\Data\
+          }
+
           # Use the Dalamud-packed manifest (includes AssemblyVersion). Do not copy the source json.
           $manifest = @(
             Get-ChildItem -Path $out -Recurse -Filter EorzeaLink.json -ErrorAction SilentlyContinue
